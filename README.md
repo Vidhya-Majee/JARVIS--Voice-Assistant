@@ -2,7 +2,7 @@
 
 A beginner-friendly voice assistant project built using Python 🐍. Jarvis listens to your voice commands and responds smartly — opening websites, playing songs on YouTube, and speaking real-time news headlines 🗞️.
 
----
+----
 
 ## 🚀 Features
 
@@ -13,7 +13,7 @@ A beginner-friendly voice assistant project built using Python 🐍. Jarvis list
 - 🗣️ **Text-to-speech responses**
 - 🎧 **Continuous voice listening loop**
 
----
+----
 
 ## 📸 Demo
 
