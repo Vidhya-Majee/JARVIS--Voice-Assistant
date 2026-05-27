@@ -42,8 +42,8 @@ def processCommand(c):
         # webbrowser.open(link)
 
     elif "news" in c.lower():
-    #...............................................
-
+        pass  # TODO: Implement news feature
+        
 if __name__ == "__main__":
     speak("Initializing Jarvis....")
     while True:
