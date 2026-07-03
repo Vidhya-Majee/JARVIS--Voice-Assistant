@@ -1,9 +1,50 @@
-# Ignore virtual environment
-.venv
-env/
-__pycache__
-*.pyc
+# ── Secrets / Environment Variables ──────────────────────────────────────────
+.env
+.env.*
+!.env.example          # allow the safe template to be committed
 
-# IDE settings
+# ── Python Artifacts ──────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+dist/
+build/
+*.whl
+
+# ── Virtual Environments ──────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+.Python
+
+# ── Flask / Development Server ────────────────────────────────────────────────
+instance/
+*.db
+*.sqlite3
+flask_session/
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── Testing ───────────────────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ── IDE / Editor Settings ─────────────────────────────────────────────────────
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
+
+# ── OS Generated Files ────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini

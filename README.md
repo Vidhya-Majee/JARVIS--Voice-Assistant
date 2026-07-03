@@ -1,116 +1,200 @@
-# 🌌 J.A.R.V.I.S. (Just A Rather Very Intelligent System) — Web HUD Assistant
+<div align="center">
 
-[![Python Version](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python&logoColor=white)](https://www.python.org/)
-[![Flask Version](https://img.shields.io/badge/Flask-3.0%2B-lightgrey?logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
-[![Web Speech API](https://img.shields.io/badge/Web%20Speech-API-cyan?logo=javascript&logoColor=white)](https://developer.mozilla.org/en-US/docs/Web/API/Web_Speech_API)
-[![HUD Style](https://img.shields.io/badge/UI-Stark%20HUD-orange)](#)
+# 🤖 J.A.R.V.I.S.
+### *Just A Rather Very Intelligent System*
 
-An advanced digital assistant dashboard inspired by Stark Industries' iconic tech. JARVIS features a dual-mode interaction model: a beautiful, responsive cybernetic **Web HUD** with voice processing, and a classic offline **Voice Console** running directly inside your terminal.
+> *"At ease, Mr. Stark."* — Your personal AI assistant, inspired by Iron Man
 
----
+[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
+[![Flask](https://img.shields.io/badge/Flask-3.1-000000?style=for-the-badge&logo=flask&logoColor=white)](https://flask.palletsprojects.com)
+[![Groq](https://img.shields.io/badge/Groq-LLaMA%203.3-F54703?style=for-the-badge&logo=meta&logoColor=white)](https://console.groq.com)
+[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 
-## ⚡ Key Features
-
-* **Interactive Arc Reactor Core:** Pulsing, segmented SVG-based reactor that triggers voice command modes when clicked.
-* **Dual Execution Modes:**
-  * **Web HUD (`app.py`):** Runs a Flask server with client-side Speech Recognition (Web Speech API) and customized Robotic TTS (Speech Synthesis).
-  * **Voice Console (`main.py`):** Operates offline using `speech_recognition` and Python's native `pyttsx3` text-to-speech package.
-* **Interactive Terminal Logger:** Real-time log monitoring panel tracking system state and commands on the webpage.
-* **Live Widgets:**
-  * **Music Controller:** Click to play music library tracks directly.
-  * **News Feed:** Dynamically pulls the top articles and headlines from Google News RSS.
-* **Web Automation:** Automatically opens the localhost browser window on startup and runs command-triggered URL links.
+</div>
 
 ---
 
-## 📂 Project Architecture
+## ✨ What is JARVIS?
 
-```txt
+**JARVIS** is a full-stack AI assistant built with **Flask + Groq AI (LLaMA 3.3 70B)**. It runs in your browser with a sleek Iron Man–themed UI and understands natural language commands — from checking the weather to cracking a joke to opening apps on your PC.
+
+Think of it as your personal Friday — but smarter.
+
+---
+
+## 🚀 Features
+
+| Feature | Description |
+|---|---|
+| 🧠 **AI Chat** | Powered by Groq's LLaMA 3.3 70B — multi-turn memory, witty like Stark's JARVIS |
+| 🌤️ **Live Weather** | Real-time weather for any city via wttr.in (no API key needed) |
+| 📰 **News Feed** | Latest headlines from Google News RSS |
+| 🎵 **Music Player** | Play your favorite songs directly on YouTube |
+| 📖 **Wikipedia Search** | Get 3-sentence summaries from Wikipedia instantly |
+| 😂 **Joke Generator** | Safe programming and pun jokes via JokeAPI |
+| 🖥️ **Open PC Apps** | Launch Notepad, Calculator, VS Code, Chrome, and more by voice |
+| 🕐 **Date & Time** | Ask JARVIS what time or date it is |
+| 🌐 **Open Websites** | "Open YouTube", "Open GitHub" — JARVIS handles it |
+| 🎙️ **Voice Mode (CLI)** | Full speech recognition + text-to-speech via `main.py` |
+
+---
+
+## 🗂️ Project Structure
+
+```
 mega_project1-JARVIS/
-├── .venv/                  # Python Virtual Environment
-├── static/
-│   ├── css/
-│   │   └── style.css       # Stark Industries Cyber-HUD Stylesheet
-│   └── js/
-│       └── script.js       # Core Frontend Speech Controller & UI Logic
+│
+├── app.py               # 🚀 Main Flask application (all routes + AI logic)
+├── main.py              # 🎙️  CLI voice assistant (speech recognition)
+├── musicLibrary.py      # 🎵 Song name → YouTube URL mapping
+│
 ├── templates/
-│   └── index.html          # Web HUD Dashboard HTML Layout
-├── app.py                  # Flask Web Server Backend
-├── main.py                 # Offline Voice Assistant Script
-├── musicLibrary.py         # Static Music Playback Registry
-├── README.md               # Documentation (You are here)
-└── .gitignore              # Repository Ignored File List
+│   └── index.html       # 🎨 Iron Man–themed web UI
+│
+├── static/
+│   ├── css/style.css    # 💅 UI styles
+│   └── js/script.js     # ⚡ Frontend logic
+│
+├── .env                 # 🔐 Your secret API keys (NEVER commit this!)
+├── .env.example         # ✅ Safe template for collaborators
+├── requirements.txt     # 📦 Python dependencies
+├── .gitignore           # 🚫 Files excluded from Git
+└── README.md            # 📖 You are here
 ```
 
 ---
 
-## 🛠️ Installation & Setup
+## ⚡ Quick Start
 
-Ensure you have **Python 3.10+** installed on your system.
+### 1. Clone the repository
 
-### 1. Clone & Enter Directory
 ```bash
-git clone https://github.com/Vidhya-Majee/JARVIS--Voice-Assistant.git
-cd JARVIS--Voice-Assistant
+git clone https://github.com/your-username/mega_project1-JARVIS.git
+cd mega_project1-JARVIS
 ```
 
-### 2. Activate Virtual Environment
-* **On PowerShell (Windows Default):**
-  ```powershell
-  .\.venv\Scripts\Activate.ps1
-  ```
-* **On Command Prompt (CMD):**
-  ```cmd
-  .\.venv\Scripts\activate.bat
-  ```
-* **On Unix/macOS:**
-  ```bash
-  source .venv/bin/activate
-  ```
+### 2. Create a virtual environment
 
-### 3. Install Dependencies
 ```bash
-pip install flask speechRecognition pyttsx3
+python -m venv .venv
+
+# Windows
+.venv\Scripts\activate
+
+# macOS / Linux
+source .venv/bin/activate
 ```
 
----
+### 3. Install dependencies
 
-## 🚀 Running the Assistant
+```bash
+pip install -r requirements.txt
+```
 
-### Mode A: Interactive Web HUD (Recommended)
-This starts the Web server on `localhost` and automatically launches your browser:
+### 4. Set up your API key
+
+```bash
+# Copy the example file
+cp .env.example .env
+```
+
+Now open `.env` and add your **Groq API key**:
+
+```env
+GROK_API_KEY=your_groq_api_key_here
+```
+
+> 🔑 Get a free Groq API key at [console.groq.com/keys](https://console.groq.com/keys)
+
+### 5. Run JARVIS
+
 ```bash
 python app.py
 ```
-* **Web address:** Open [http://127.0.0.1:5000](http://127.0.0.1:5000) if it doesn't open automatically.
-* **Interaction:** Click the spinning **Arc Reactor** or tap the `Spacebar` to speak, or use the **System Console** at the bottom-left to type manual commands.
 
-### Mode B: Offline Voice Console
-Run the command-line assistant using system-level audio capture:
+Open your browser and go to: **http://127.0.0.1:5000** 🎉
+
+---
+
+## 🎙️ Voice Assistant Mode (CLI)
+
+Want JARVIS to listen to your voice directly? Run:
+
 ```bash
 python main.py
 ```
-* Say **"Jarvis"** to wake the assistant up. 
-* Wait for the wake confirmation sound/text, then give your command (e.g. *"Play song name"*).
+
+Then say **"Jarvis"** to wake it up and give commands like:
+- *"Open YouTube"*
+- *"Play Zaalima"*
+- *"Open Google"*
+
+> ⚠️ Requires a working **microphone** and PyAudio installed.
 
 ---
 
-## ⚙️ Configured Commands
+## 💬 Example Commands (Web UI)
 
-| Command | Action / Behavior |
-| :--- | :--- |
-| **"hello" / "hi jarvis"** | Plays a polite welcome greeting |
-| **"open google"** | Opens `google.com` in a new tab |
-| **"open youtube"** | Opens `youtube.com` in a new tab |
-| **"open github"** | Opens `github.com` in a new tab |
-| **"play [song_name]"** | Plays track from your custom library (or falls back to YouTube search) |
-| **"news"** | Queries and displays Google RSS feed headlines |
-| **"search [query]"** | Searches Google for the requested query |
+| You say... | JARVIS does... |
+|---|---|
+| `"What's the weather in Mumbai?"` | Shows live weather card |
+| `"Tell me a joke"` | Cracks a programming pun |
+| `"Search Wikipedia for quantum computing"` | Returns a 3-sentence summary |
+| `"What time is it?"` | Tells the current time |
+| `"Open Notepad"` | Launches Notepad on your PC |
+| `"Play Zaalima"` | Opens the song on YouTube |
+| `"Who are you?"` | JARVIS introduces himself 😎 |
 
 ---
 
-## 🛸 Future Roadmaps
-See [jarvis_upgrade_roadmap.md](.gemini/antigravity-ide/brain/88d2c39d-5a08-432a-85e3-9573e63d7de8/jarvis_upgrade_roadmap.md) for step-by-step instructions on implementing:
-1. **Gemini LLM Brain** for advanced conversation.
-2. **System CPU & RAM Monitors** directly on the dashboard.
-3. **Circular Audio Wave Visualizer** around the Arc Reactor.
+## 🔐 Environment Variables
+
+| Variable | Required | Description |
+|---|---|---|
+| `GROK_API_KEY` | ✅ Yes | Your Groq API key for LLaMA 3.3 AI |
+| `GEMINI_API_KEY` | ❌ Optional | Google Gemini key (future use) |
+
+> **Never commit your `.env` file.** Use `.env.example` as the template for collaborators.
+
+---
+
+## 📦 Tech Stack
+
+| Layer | Technology |
+|---|---|
+| **Backend** | Python 3.10+, Flask 3.1 |
+| **AI Engine** | Groq Cloud API — LLaMA 3.3 70B Versatile |
+| **Frontend** | HTML5, CSS3, Vanilla JavaScript |
+| **Weather API** | wttr.in (free, no key needed) |
+| **News** | Google News RSS |
+| **Wikipedia** | MediaWiki REST API |
+| **Jokes** | JokeAPI v2 |
+| **Voice (CLI)** | SpeechRecognition + pyttsx3 |
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Here's how:
+
+1. **Fork** the repository
+2. **Create** a feature branch: `git checkout -b feature/your-feature`
+3. **Commit** your changes: `git commit -m "Add: your feature"`
+4. **Push** to the branch: `git push origin feature/your-feature`
+5. **Open** a Pull Request
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License** — do whatever you want, just give credit. 😊
+
+---
+
+<div align="center">
+
+Made with ❤️ and a little bit of Stark technology
+
+*"Sometimes you gotta run before you can walk."* — Tony Stark
+
+</div>

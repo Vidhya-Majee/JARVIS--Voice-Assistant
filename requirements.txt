@@ -1,0 +1,16 @@
+# JARVIS — Web Assistant Dependencies
+# Install with: pip install -r requirements.txt
+
+# Web framework
+Flask==3.1.1
+
+# HTTP requests (news API, etc.)
+requests==2.34.2
+
+# Groq AI (LLM backend)
+groq==1.5.0
+
+# Voice assistant (CLI version — main.py)
+SpeechRecognition==3.14.3
+pyttsx3==2.99
+PyAudio==0.2.14
