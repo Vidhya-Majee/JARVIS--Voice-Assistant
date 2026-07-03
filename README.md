@@ -151,7 +151,7 @@ Then say **"Jarvis"** to wake it up and give commands like:
 
 | Variable | Required | Description |
 |---|---|---|
-| `GROK_API_KEY` | ✅ Yes | Your Groq API key for LLaMA 3.3 AI |
+| `GROQ_API_KEY` | ✅ Yes | Your Groq API key for LLaMA 3.3 AI |
 | `GEMINI_API_KEY` | ❌ Optional | Google Gemini key (future use) |
 
 > **Never commit your `.env` file.** Use `.env.example` as the template for collaborators.
