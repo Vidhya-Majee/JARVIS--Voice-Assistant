@@ -225,11 +225,69 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!opened) {
                 logToConsole('Popup blocked. Please check your browser address bar permissions.', 'error');
             }
-        } 
+        }
         else if (action === 'show_news') {
             logToConsole(`Parsing top headlines feed...`, 'system');
+            const newsStatus = document.getElementById('news-status');
+            if (newsStatus) newsStatus.textContent = 'LIVE';
             renderNews(target);
         }
+        else if (action === 'show_weather') {
+            logToConsole(`Weather data received for ${target.city}.`, 'system');
+            renderWeather(target);
+        }
+        else if (action === 'show_info') {
+            logToConsole(`Wikipedia data retrieved: "${target.title}"`, 'system');
+            renderInfo(target);
+        }
+        else if (action === 'ai_response') {
+            logToConsole(`AI core response logged.`, 'system');
+        }
+        else if (action === 'app_opened') {
+            logToConsole(`Application launch sequence initiated.`, 'system');
+        }
+    }
+
+    // Render Weather Card in the news panel (temporary display)
+    function renderWeather(w) {
+        if (!w || !w.success) return;
+        newsContainer.innerHTML = `
+            <div class="news-card" style="cursor:default; border-color: var(--accent-cyan);">
+                <div class="news-meta">
+                    <span class="news-source" style="color:var(--accent-cyan)">🌡 WEATHER REPORT</span>
+                    <span class="news-time">${w.city}</span>
+                </div>
+                <div class="news-title" style="font-size:1.1rem; line-height:1.7">
+                    ${w.description} &nbsp;|&nbsp; <strong>${w.temp_c}°C</strong> / ${w.temp_f}°F<br>
+                    <span style="font-size:0.8rem; opacity:0.7">
+                        Feels like ${w.feels_like}°C &nbsp;·&nbsp;
+                        Humidity ${w.humidity}% &nbsp;·&nbsp;
+                        Wind ${w.wind_kmph} km/h &nbsp;·&nbsp;
+                        Visibility ${w.visibility} km
+                    </span>
+                </div>
+            </div>
+        `;
+        const newsStatus = document.getElementById('news-status');
+        if (newsStatus) newsStatus.textContent = 'WEATHER';
+    }
+
+    // Render Wikipedia Info Card in the news panel
+    function renderInfo(info) {
+        if (!info) return;
+        newsContainer.innerHTML = `
+            <div class="news-card" style="cursor:default; border-color: var(--accent-cyan);">
+                <div class="news-meta">
+                    <span class="news-source" style="color:var(--accent-cyan)">📖 WIKIPEDIA</span>
+                    <span class="news-time">${info.title}</span>
+                </div>
+                <div class="news-title" style="font-size:0.85rem; line-height:1.7; white-space:normal;">
+                    ${info.text}
+                </div>
+            </div>
+        `;
+        const newsStatus = document.getElementById('news-status');
+        if (newsStatus) newsStatus.textContent = 'WIKI';
     }
 
     // Render News Widget Cards

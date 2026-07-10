@@ -4,11 +4,14 @@
 # Web framework
 Flask==3.1.1
 
-# HTTP requests (news API, etc.)
+# HTTP requests (news API, Wikipedia, weather, etc.)
 requests==2.34.2
 
-# Groq AI (LLM backend)
+# Groq AI (LLM backend — ACTIVE by default)
 groq==1.5.0
+
+# Google Gemini AI (fallback — uncomment to install if switching from Groq)
+# google-generativeai>=0.8.0
 
 # Voice assistant (CLI version — main.py)
 SpeechRecognition==3.14.3

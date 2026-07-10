@@ -28,12 +28,10 @@ def _load_env(path=".env"):
         pass
 
 _load_env()
-GROK_API_KEY = os.getenv("GROK_API_KEY", "")
+GROQ_API_KEY   = os.getenv("GROQ_API_KEY", "")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
-# ── Groq AI Setup ─────────────────────────────────────────────────────────────
-_groq_client = None
-_chat_history = []  # multi-turn conversation memory
-
+# ── Shared JARVIS Personality Prompt ──────────────────────────────────────────
 SYSTEM_PROMPT = (
     "You are J.A.R.V.I.S., an advanced AI assistant created by Tony Stark. "
     "You are witty, precise, and highly intelligent. "
@@ -42,19 +40,53 @@ SYSTEM_PROMPT = (
     "happens to be smarter than everyone in the room."
 )
 
+# ── Groq AI Setup (ACTIVE by default) ────────────────────────────────────────
+# To switch to Gemini: comment out this entire block and uncomment the Gemini block below.
+_groq_client = None
+_chat_history = []  # multi-turn conversation memory
+
 def init_groq():
     global _groq_client
-    if not GROK_API_KEY:
-        print("[JARVIS] Warning: No GROK_API_KEY in .env — AI fallback disabled.")
+    if not GROQ_API_KEY:
+        print("[JARVIS] Warning: No GROQ_API_KEY in .env — Groq AI disabled.")
         return
     try:
         from groq import Groq
-        _groq_client = Groq(api_key=GROK_API_KEY)
+        _groq_client = Groq(api_key=GROQ_API_KEY)
         print("[JARVIS] Groq AI initialized successfully.")
     except Exception as e:
         print(f"[JARVIS] Groq init failed: {e}")
 
 init_groq()
+
+# ── Google Gemini AI Setup (COMMENTED OUT — fallback if Groq is not working) ──
+# HOW TO SWITCH TO GEMINI:
+#   1. Add your key to .env:  GEMINI_API_KEY=your_key_here
+#   2. Uncomment everything in this block
+#   3. Comment out the Groq block above AND ask_groq() function below
+#   4. Rename ask_gemini() calls to replace ask_groq() in process_command()
+#
+# import google.generativeai as genai
+# _gemini_model = None
+# _gemini_chat  = None
+#
+# def init_gemini():
+#     global _gemini_model, _gemini_chat
+#     if not GEMINI_API_KEY:
+#         print("[JARVIS] Warning: No GEMINI_API_KEY in .env — Gemini AI disabled.")
+#         return
+#     try:
+#         genai.configure(api_key=GEMINI_API_KEY)
+#         _gemini_model = genai.GenerativeModel(
+#             model_name="gemini-1.5-flash",
+#             system_instruction=SYSTEM_PROMPT,
+#         )
+#         _gemini_chat = _gemini_model.start_chat(history=[])
+#         print("[JARVIS] Gemini AI initialized successfully.")
+#     except Exception as e:
+#         print(f"[JARVIS] Gemini init failed: {e}")
+#
+# init_gemini()
 
 
 # ── Flask App ──────────────────────────────────────────────────────────────────
@@ -66,7 +98,7 @@ def ask_groq(user_message: str) -> str:
     """Send a message to Groq (LLaMA 3.3) with multi-turn chat history."""
     global _groq_client, _chat_history
     if not _groq_client:
-        return "My AI core is offline. Please check your GROK_API_KEY in the .env file."
+        return "My AI core is offline. Please check your GROQ_API_KEY in the .env file."
     try:
         # Build messages list: system prompt + last 10 turns + new user message
         messages = [{"role": "system", "content": SYSTEM_PROMPT}]
@@ -88,6 +120,23 @@ def ask_groq(user_message: str) -> str:
     except Exception as e:
         print(f"[JARVIS] Groq error: {e}")
         return "I encountered an issue with my AI core. Please try again."
+
+
+# ── Google Gemini AI Ask Function (COMMENTED OUT) ─────────────────────────────
+# Uncomment this function and swap ask_groq() → ask_gemini() in process_command()
+# to use Gemini instead of Groq.
+#
+# def ask_gemini(user_message: str) -> str:
+#     """Send a message to Google Gemini 1.5 Flash with persistent chat history."""
+#     global _gemini_chat
+#     if not _gemini_chat:
+#         return "My Gemini AI core is offline. Please check your GEMINI_API_KEY in the .env file."
+#     try:
+#         response = _gemini_chat.send_message(user_message)
+#         return response.text.strip()
+#     except Exception as e:
+#         print(f"[JARVIS] Gemini error: {e}")
+#         return "I encountered an issue with my Gemini AI core. Please try again."
 
 
 def get_news() -> list:
@@ -148,13 +197,17 @@ def get_weather(city: str) -> dict:
 
 def search_wikipedia(query: str) -> str:
     """Get a 2-sentence Wikipedia summary."""
+    # Wikipedia requires a User-Agent header (403 Forbidden otherwise)
+    headers = {
+        "User-Agent": "JARVIS-Assistant/1.0 (https://github.com/your-username/jarvis; contact@example.com)"
+    }
     try:
         search_url = (
             "https://en.wikipedia.org/w/api.php"
             f"?action=query&list=search&srsearch={urllib.parse.quote(query)}"
             "&format=json&srlimit=1"
         )
-        search_resp = requests.get(search_url, timeout=5).json()
+        search_resp = requests.get(search_url, headers=headers, timeout=10).json()
         results = search_resp.get("query", {}).get("search", [])
         if not results:
             return f"I couldn't find any Wikipedia article about '{query}'."
@@ -165,7 +218,7 @@ def search_wikipedia(query: str) -> str:
             f"?action=query&prop=extracts&exintro&explaintext"
             f"&pageids={page_id}&format=json&exsentences=3"
         )
-        extract_resp = requests.get(extract_url, timeout=5).json()
+        extract_resp = requests.get(extract_url, headers=headers, timeout=10).json()
         pages = extract_resp.get("query", {}).get("pages", {})
         extract = list(pages.values())[0].get("extract", "")
         # Return first 3 sentences max

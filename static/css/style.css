@@ -722,109 +722,232 @@ body.cyber-hud {
     background: var(--primary-cyan);
 }
 
-/* Responsive adjustment if screen height is small */
-@media (max-height: 700px) {
+/* ============================================================
+   RESPONSIVE DESIGN - Full Breakpoint Coverage
+   ============================================================ */
+
+/* --- Large Desktops (1400px+) --- */
+@media (min-width: 1400px) {
     .hud-grid {
-        grid-template-columns: 280px 1fr 280px;
-        gap: 10px;
+        grid-template-columns: 380px 1fr 380px;
+        gap: 25px;
     }
+    .hud-title {
+        font-size: 2.6rem;
+    }
+    .reactor-container {
+        width: 300px;
+        height: 300px;
+    }
+    .reactor-outer-ring { width: 290px; height: 290px; }
+    .reactor-middle-ring { width: 245px; height: 245px; }
+    .reactor-core { width: 200px; height: 200px; }
+    .reactor-svg { width: 200px; height: 200px; }
+}
+
+/* --- Standard Desktops / Laptops (1200px – 1399px) --- */
+/* Default styles apply here — no override needed */
+
+/* --- Medium Desktops (900px – 1199px) --- */
+@media (max-width: 1199px) and (min-width: 901px) {
+    .hud-grid {
+        grid-template-columns: 260px 1fr 260px;
+        gap: 14px;
+    }
+    .hud-title {
+        font-size: 1.9rem;
+        letter-spacing: 3px;
+    }
+    .reactor-container {
+        width: 230px;
+        height: 230px;
+    }
+    .reactor-outer-ring { width: 220px; height: 220px; }
+    .reactor-middle-ring { width: 185px; height: 185px; }
+    .reactor-core { width: 155px; height: 155px; }
+    .reactor-svg { width: 155px; height: 155px; }
+}
+
+/* --- Short Screens / Landscape Phones (max-height: 620px) --- */
+@media (max-height: 620px) and (min-width: 601px) {
+    body.cyber-hud { overflow-y: auto; height: auto; }
+    .hud-container { height: auto; min-height: 100vh; }
+    .hud-grid { gap: 10px; }
+    .reactor-container { width: 160px; height: 160px; margin-bottom: 8px; }
+    .reactor-outer-ring { width: 152px; height: 152px; }
+    .reactor-middle-ring { width: 128px; height: 128px; }
+    .reactor-core { width: 105px; height: 105px; }
+    .reactor-svg { width: 105px; height: 105px; }
+    .voice-hint { font-size: 0.72rem; margin-bottom: 8px; }
+    .hud-title { font-size: 1.6rem; }
+    .system-time { font-size: 1.2rem; }
+    .hud-header { padding-bottom: 8px; margin-bottom: 10px; }
+    .hud-footer { margin-top: 8px; padding-top: 8px; }
+}
+
+/* --- Tablets (601px – 900px): stacked layout --- */
+@media (max-width: 900px) {
+    body.cyber-hud {
+        overflow-y: auto;
+        height: auto;
+        min-height: 100vh;
+        align-items: flex-start;
+        padding: 0;
+    }
+    .hud-container {
+        height: auto;
+        min-height: 100vh;
+        width: 100vw;
+        padding: 12px 14px;
+        border-left: none;
+        border-right: none;
+    }
+    .hud-header {
+        flex-wrap: wrap;
+        gap: 8px;
+        padding-bottom: 10px;
+        margin-bottom: 12px;
+    }
+    .header-left { flex: 1 1 auto; }
+    .header-center { order: 3; width: 100%; justify-content: center; display: flex; }
+    .header-right { flex: 0 0 auto; }
+    .hud-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+    }
+    /* Reactor first, console second, widgets last */
+    .hud-reactor-panel { order: 1; padding: 20px 0; }
+    .console-panel   { order: 2; height: 360px; }
+    .hud-widgets-column { order: 3; }
+    .hud-widgets-column {
+        display: flex;
+        flex-direction: row;
+        gap: 14px;
+    }
+    .music-panel { flex: 1; min-height: 280px; }
+    .news-panel  { flex: 1; min-height: 340px; }
+    .hud-footer {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+        text-align: center;
+        font-size: 0.7rem;
+    }
+}
+
+/* --- Small Tablets / Large Phones Portrait (481px – 700px) --- */
+@media (max-width: 700px) {
+    .hud-container { padding: 10px; }
+    .hud-title { font-size: 1.8rem; letter-spacing: 2px; }
+    .hud-subtitle { font-size: 0.65rem; }
+    .system-time { font-size: 1.2rem; }
+    .system-date { font-size: 0.72rem; }
     .reactor-container {
         width: 200px;
         height: 200px;
-        margin-bottom: 10px;
+        margin-bottom: 12px;
     }
     .reactor-outer-ring { width: 190px; height: 190px; }
     .reactor-middle-ring { width: 160px; height: 160px; }
     .reactor-core { width: 130px; height: 130px; }
     .reactor-svg { width: 130px; height: 130px; }
+    /* Stack widget columns on narrower tablets */
+    .hud-widgets-column {
+        flex-direction: column !important;
+    }
+    .music-panel { min-height: 260px; }
+    .news-panel  { min-height: 320px; }
+    .console-panel { height: 320px; }
 }
 
-/* Medium Desktop Screens (between 900px and 1200px) */
-@media (max-width: 1200px) and (min-width: 901px) {
-    .hud-grid {
-        grid-template-columns: 280px 1fr 280px;
-        gap: 15px;
-    }
-}
-
-/* Tablet & Mobile Screens */
-@media (max-width: 900px) {
-    body.cyber-hud {
-        overflow-y: auto;
-        height: auto;
-    }
-    .hud-container {
-        height: auto;
-        min-height: 98vh;
-        width: 98vw;
-        padding: 10px;
-    }
-    .hud-grid {
-        grid-template-columns: 1fr;
-        grid-template-rows: auto auto auto;
-        gap: 15px;
-    }
-    .console-panel { 
-        grid-row: 2; 
-        height: 380px; /* Explicit height to prevent collapsing on mobile */
-    }
-    .hud-reactor-panel { 
-        grid-row: 1; 
-        margin: 20px 0; 
-    }
-    .hud-widgets-column { 
-        grid-row: 3; 
-        height: auto;
-    }
-    .music-panel {
-        height: 280px; /* Explicit height */
-    }
-    .news-panel {
-        height: 380px; /* Explicit height */
-    }
-    .hud-footer {
-        flex-wrap: wrap; /* Prevent text overlap on smaller devices */
-        justify-content: center;
-        gap: 12px;
-        text-align: center;
-    }
-}
-
-/* Small Smartphone Devices (max-width: 480px) */
+/* --- Phones (max-width: 480px) --- */
 @media (max-width: 480px) {
+    body.cyber-hud { font-size: 14px; }
+    .hud-container { padding: 8px; }
+
+    /* Header: full stack */
     .hud-header {
         flex-direction: column;
-        gap: 10px;
+        align-items: center;
+        gap: 8px;
         text-align: center;
     }
-    .header-right {
-        text-align: center;
+    .header-left, .header-right { text-align: center; }
+    .header-center { order: 2; }
+    .header-right  { order: 3; }
+
+    .hud-title { font-size: 1.55rem; letter-spacing: 2px; }
+    .hud-subtitle { font-size: 0.6rem; letter-spacing: 1px; }
+    .system-time { font-size: 1.1rem; }
+    .system-date { font-size: 0.68rem; }
+    .status-indicator { padding: 5px 12px; }
+    .status-text { font-size: 0.78rem; }
+
+    /* Reactor */
+    .reactor-container { width: 165px; height: 165px; margin-bottom: 12px; }
+    .reactor-outer-ring { width: 157px; height: 157px; }
+    .reactor-middle-ring { width: 132px; height: 132px; }
+    .reactor-core { width: 108px; height: 108px; }
+    .reactor-svg { width: 108px; height: 108px; }
+    .voice-hint { font-size: 0.7rem; letter-spacing: 1px; margin-bottom: 10px; }
+
+    /* Buttons */
+    .buttons-row { flex-direction: column; gap: 8px; width: 100%; max-width: 220px; margin: 0 auto; }
+    .hud-btn { width: 100%; text-align: center; padding: 10px 12px; }
+
+    /* Console */
+    .console-panel { height: 290px; }
+    .terminal-container { font-size: 0.78rem; }
+    .terminal-input-container input { font-size: 0.82rem; }
+
+    /* Music */
+    .music-grid { grid-template-columns: 1fr; }
+    .music-panel { min-height: 240px; }
+    .music-card { padding: 8px 6px; }
+
+    /* News */
+    .news-panel { min-height: 300px; }
+    .news-card .news-title { font-size: 0.78rem; }
+
+    /* Footer */
+    .hud-footer {
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.65rem;
     }
-    .hud-title {
-        font-size: 1.8rem;
-        letter-spacing: 2px;
-    }
-    .system-time {
-        font-size: 1.2rem;
-    }
-    .reactor-container {
-        width: 180px;
-        height: 180px;
-        margin-bottom: 15px;
-    }
-    .reactor-outer-ring { width: 170px; height: 170px; }
-    .reactor-middle-ring { width: 140px; height: 140px; }
-    .reactor-core { width: 110px; height: 110px; }
-    .reactor-svg { width: 110px; height: 110px; }
-    .music-grid {
-        grid-template-columns: 1fr; /* Stack music tracks in single column on narrow screens */
-    }
-    .buttons-row {
-        flex-direction: column; /* Stack controls vertically if screen is extremely narrow */
-        width: 100%;
-        max-width: 250px;
-        margin: 0 auto;
-    }
+    .panel-title { font-size: 0.82rem; }
+    .panel-content { padding: 8px; }
+}
+
+/* --- Tiny Phones (max-width: 360px) --- */
+@media (max-width: 360px) {
+    .hud-title { font-size: 1.3rem; letter-spacing: 1px; }
+    .reactor-container { width: 145px; height: 145px; }
+    .reactor-outer-ring { width: 138px; height: 138px; }
+    .reactor-middle-ring { width: 116px; height: 116px; }
+    .reactor-core { width: 94px; height: 94px; }
+    .reactor-svg { width: 94px; height: 94px; }
+    .console-panel { height: 260px; }
+    .hud-btn { font-size: 0.68rem; padding: 8px 10px; }
+}
+
+/* --- Landscape phones (height < 500px, narrow) --- */
+@media (max-height: 500px) and (max-width: 900px) {
+    body.cyber-hud { overflow-y: auto; height: auto; }
+    .hud-container { min-height: auto; padding: 6px 10px; }
+    .hud-header { flex-direction: row; flex-wrap: wrap; gap: 6px; }
+    .hud-grid { gap: 10px; }
+    .reactor-container { width: 130px; height: 130px; margin-bottom: 6px; }
+    .reactor-outer-ring { width: 124px; height: 124px; }
+    .reactor-middle-ring { width: 104px; height: 104px; }
+    .reactor-core { width: 85px; height: 85px; }
+    .reactor-svg { width: 85px; height: 85px; }
+    .voice-hint { font-size: 0.65rem; margin-bottom: 6px; }
+    .console-panel { height: 220px; }
+    .music-panel { min-height: 200px; }
+    .news-panel  { min-height: 220px; }
 }
 
 .sr-only {
