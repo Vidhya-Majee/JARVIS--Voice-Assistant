@@ -3,176 +3,352 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Jarvis Web HUD - A premium, interactive voice assistant dashboard inspired by Stark Industries technology, powered by Python and the Web Speech API.">
-    <title>JARVIS - Voice Assistant Web HUD</title>
-    
+    <meta name="description" content="J.A.R.V.I.S. — Stark Industries Holographic Interface · Powered by AI">
+    <title>J.A.R.V.I.S. — MARK IX</title>
+
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
-    
-    <!-- Custom Style Sheet -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body class="cyber-hud">
-    <!-- Grid Overlay for tech effect -->
-    <div class="hud-grid-overlay"></div>
-    
-    <!-- Main Dashboard Container -->
-    <div class="hud-container">
-        
-        <!-- Header Section -->
+
+    <!-- Boot Overlay -->
+    <div class="boot-overlay" id="boot-overlay">
+        <div class="boot-inner">
+            <div class="boot-logo">
+                <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
+                    <polygon points="36,4 68,20 68,52 36,68 4,52 4,20" stroke="#00f0ff" stroke-width="1.5" fill="rgba(0,240,255,0.04)"/>
+                    <polygon points="36,14 58,26 58,46 36,58 14,46 14,26" stroke="#00f0ff" stroke-width="1" fill="rgba(0,240,255,0.06)"/>
+                    <circle cx="36" cy="36" r="10" fill="#00f0ff" opacity="0.9" filter="url(#boot-glow)"/>
+                    <defs><filter id="boot-glow"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+                </svg>
+            </div>
+            <div class="boot-title">J.A.R.V.I.S.</div>
+            <div class="boot-subtitle">STARK INDUSTRIES · MARK-IX · INITIALIZING</div>
+            <div class="boot-log" id="boot-log"></div>
+            <div class="boot-bar-wrap"><div class="boot-bar" id="boot-bar"></div></div>
+        </div>
+    </div>
+
+    <!-- Particle Canvas Background -->
+    <canvas id="particle-canvas"></canvas>
+
+    <!-- Scanline overlay -->
+    <div class="scanlines"></div>
+
+    <!-- Hexagonal grid overlay -->
+    <div class="hex-grid-overlay"></div>
+
+    <!-- Corner decorations -->
+    <div class="corner corner-tl"><div class="corner-inner"></div></div>
+    <div class="corner corner-tr"><div class="corner-inner"></div></div>
+    <div class="corner corner-bl"><div class="corner-inner"></div></div>
+    <div class="corner corner-br"><div class="corner-inner"></div></div>
+
+    <!-- Edge data strips -->
+    <div class="edge-strip edge-left">
+        <span>SYS·MONITOR</span>
+        <span id="edge-fps">60 FPS</span>
+        <span>STARK·NET</span>
+        <span>ENCRYPTED</span>
+    </div>
+    <div class="edge-strip edge-right">
+        <span>JARVIS·IX</span>
+        <span>NEURAL·CORE</span>
+        <span id="edge-latency">12ms</span>
+        <span>ONLINE</span>
+    </div>
+
+    <!-- ════════════════════════════════════════════════
+         MAIN HUD CONTAINER
+         ════════════════════════════════════════════════ -->
+    <div class="hud-container" id="hud-container">
+
+        <!-- ── TOP HEADER BAR ── -->
         <header class="hud-header">
             <div class="header-left">
-                <h1 class="hud-title" id="hud-main-title">J.A.R.V.I.S.</h1>
-                <span class="hud-subtitle">MARK-VIII // ONLINE_ASSISTANT</span>
+                <div class="brand-block">
+                    <div class="brand-logo">
+                        <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+                            <polygon points="20,2 38,11 38,29 20,38 2,29 2,11" stroke="#00f0ff" stroke-width="1.5" fill="rgba(0,240,255,0.05)"/>
+                            <polygon points="20,7 33,14 33,26 20,33 7,26 7,14" stroke="#00f0ff" stroke-width="1" fill="rgba(0,240,255,0.08)"/>
+                            <circle cx="20" cy="20" r="6" fill="#00f0ff" opacity="0.95" filter="url(#logo-glow)"/>
+                            <defs><filter id="logo-glow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="hud-title" id="hud-main-title">J.A.R.V.I.S.</h1>
+                        <span class="hud-subtitle">STARK INDUSTRIES · MARK-IX · NEURAL CORE ONLINE</span>
+                    </div>
+                </div>
             </div>
+
             <div class="header-center">
-                <div class="status-indicator">
+                <div class="status-pill">
                     <span class="status-dot pulsing" id="status-dot"></span>
                     <span class="status-text" id="status-display-text">SYSTEM STANDBY</span>
                 </div>
+                <div class="energy-bar-wrap">
+                    <div class="energy-label">ARC POWER</div>
+                    <div class="energy-bar">
+                        <div class="energy-fill" id="energy-fill"></div>
+                        <div class="energy-segments"></div>
+                    </div>
+                    <div class="energy-pct" id="energy-pct">100%</div>
+                </div>
+                <div class="threat-level-wrap">
+                    <div class="threat-label">THREAT</div>
+                    <div class="threat-dots">
+                        <span class="threat-dot td-1 active"></span>
+                        <span class="threat-dot td-2"></span>
+                        <span class="threat-dot td-3"></span>
+                        <span class="threat-dot td-4"></span>
+                        <span class="threat-dot td-5"></span>
+                    </div>
+                    <div class="threat-text" id="threat-text">LVL 1</div>
+                </div>
             </div>
+
             <div class="header-right">
                 <div class="system-time" id="system-time-display">00:00:00</div>
-                <div class="system-date" id="system-date-display">00/00/2026</div>
+                <div class="system-date" id="system-date-display">-- / -- / ----</div>
+                <div class="uptime-row"><span class="label-dim">UPTIME:</span> <span id="uptime-counter">00:00:00</span></div>
             </div>
         </header>
 
-        <!-- Main Body Grid -->
+        <!-- ── MAIN 3-COLUMN GRID ── -->
         <main class="hud-grid">
-            
-            <!-- Left Column: Terminal Console & Manual Command -->
-            <section class="hud-panel console-panel" aria-labelledby="console-heading">
-                <div class="panel-header">
-                    <h2 id="console-heading" class="panel-title"><span class="icon">[_]</span> SYSTEM LOG & CONSOLE</h2>
-                    <div class="panel-status">SYS_OK</div>
-                </div>
-                <div class="panel-content">
-                    <div class="terminal-container" id="terminal-log">
-                        <div class="terminal-line system-line">&gt; Initialize Jarvis system sequence...</div>
-                        <div class="terminal-line system-line">&gt; Establishing connection to local neural nodes...</div>
-                        <div class="terminal-line success-line">&gt; Connection established on port 5000.</div>
-                        <div class="terminal-line success-line">&gt; Speech synthesis engine online.</div>
-                        <div class="terminal-line success-line">&gt; Speech recognition listener calibrated.</div>
-                        <div class="terminal-line system-line">&gt; JARVIS is ready. Click the Arc Reactor or press space to initiate command cycle.</div>
-                    </div>
-                    
-                    <form class="terminal-input-container" id="console-form" autocomplete="off">
-                        <span class="prompt-symbol">&gt;</span>
-                        <input type="text" id="console-input" placeholder="Enter manual command or ask a question..." aria-label="Manual command input">
-                        <button type="submit" id="console-submit-btn" class="hud-btn glow-btn">SEND</button>
-                    </form>
-                </div>
-            </section>
 
-            <!-- Center Column: Arc Reactor Core -->
-            <section class="hud-reactor-panel" aria-labelledby="reactor-heading">
-                <h2 id="reactor-heading" class="sr-only">Arc Reactor Core</h2>
+            <!-- ══ LEFT COLUMN ══ -->
+            <aside class="left-column">
+
+                <!-- Console / Chat Log -->
+                <section class="hud-panel console-panel" aria-labelledby="console-heading">
+                    <div class="panel-header">
+                        <h2 id="console-heading" class="panel-title">
+                            <span class="panel-icon">⌨</span> NEURAL UPLINK
+                        </h2>
+                        <div class="panel-badges">
+                            <span class="badge badge-green" id="api-badge">API LIVE</span>
+                            <span class="badge badge-blue">CONSOLE</span>
+                        </div>
+                    </div>
+                    <div class="panel-body">
+                        <div class="terminal-container" id="terminal-log">
+                            <div class="terminal-line system-line"><span class="ts">[BOOT]</span> Initializing neural core...</div>
+                            <div class="terminal-line system-line"><span class="ts">[SYS]</span>&nbsp; Connecting to Stark net...</div>
+                            <div class="terminal-line success-line"><span class="ts">[OK]</span>&nbsp;&nbsp; Flask server active on port 5000.</div>
+                            <div class="terminal-line success-line"><span class="ts">[OK]</span>&nbsp;&nbsp; Speech synthesis engine online.</div>
+                            <div class="terminal-line success-line"><span class="ts">[OK]</span>&nbsp;&nbsp; Voice recognition calibrated.</div>
+                            <div class="terminal-line jarvis-line"><span class="ts">[JARVIS]</span> Good day, Sir. All systems nominal.</div>
+                        </div>
+                        <form class="terminal-input-container" id="console-form" autocomplete="off">
+                            <span class="prompt-symbol">▶</span>
+                            <input type="text" id="console-input" placeholder="Type a command or ask anything..." aria-label="Manual command input" spellcheck="false">
+                            <button type="submit" id="console-submit-btn" class="hud-btn glow-btn">
+                                <span>EXEC</span>
+                            </button>
+                        </form>
+                        <!-- Command history hint -->
+                        <div class="input-hint">↑ ↓ arrow keys for history &nbsp;·&nbsp; ESC to clear</div>
+                    </div>
+                </section>
+
+                <!-- Quick Commands Widget -->
+                <section class="hud-panel quick-panel" aria-labelledby="quick-heading">
+                    <div class="panel-header">
+                        <h2 id="quick-heading" class="panel-title"><span class="panel-icon">⚡</span> QUICK COMMANDS</h2>
+                        <div class="panel-badges">
+                            <span class="badge badge-pulse">HOTKEY</span>
+                        </div>
+                    </div>
+                    <div class="panel-body">
+                        <div class="quick-grid">
+                            <button class="quick-cmd" data-cmd="what time is it" title="Current time">⏱ TIME</button>
+                            <button class="quick-cmd" data-cmd="today's date" title="Today's date">📅 DATE</button>
+                            <button class="quick-cmd" data-cmd="news" title="Top headlines">📡 NEWS</button>
+                            <button class="quick-cmd" data-cmd="weather in Delhi" title="Weather check">🌦 WEATHER</button>
+                            <button class="quick-cmd" data-cmd="tell me a joke" title="Get a joke">😄 JOKE</button>
+                            <button class="quick-cmd" data-cmd="who are you" title="JARVIS identity">🤖 ABOUT</button>
+                            <button class="quick-cmd" data-cmd="flip a coin" title="Coin flip">🪙 COIN</button>
+                            <button class="quick-cmd" data-cmd="roll a dice" title="Roll dice">🎲 DICE</button>
+                            <button class="quick-cmd" data-cmd="my ip address" title="Local IP">🌐 MY IP</button>
+                        </div>
+                    </div>
+                </section>
+
+            </aside>
+
+            <!-- ══ CENTER COLUMN ══ -->
+            <section class="center-column" aria-labelledby="reactor-heading">
+                <h2 id="reactor-heading" class="sr-only">Arc Reactor Command Core</h2>
+
+                <!-- Waveform Visualizer -->
+                <div class="waveform-wrap">
+                    <canvas id="waveform-canvas" width="500" height="60"></canvas>
+                </div>
+
+                <!-- Arc Reactor -->
                 <div class="reactor-container">
-                    <!-- Spinning HUD circles -->
-                    <div class="reactor-outer-ring"></div>
-                    <div class="reactor-middle-ring"></div>
-                    
-                    <!-- Arc Reactor Button (Interactive) -->
-                    <button class="reactor-core" id="reactor-trigger-btn" aria-label="Activate Jarvis Voice Assistant">
-                        <!-- SVG for complex Arc Reactor geometry -->
-                        <svg class="reactor-svg" viewBox="0 0 200 200" width="180" height="180">
-                            <!-- Inner glow filter -->
+                    <div class="reactor-halo"></div>
+                    <div class="reactor-outer-ring ring-anim-slow"></div>
+                    <div class="reactor-mid-ring ring-anim-mid"></div>
+                    <div class="reactor-inner-ring ring-anim-fast"></div>
+
+                    <!-- Radar sweep -->
+                    <div class="radar-sweep"></div>
+
+                    <!-- Click ripple container -->
+                    <div class="ripple-container" id="ripple-container"></div>
+
+                    <button class="reactor-core" id="reactor-trigger-btn" aria-label="Activate JARVIS Voice Assistant">
+                        <svg class="reactor-svg" viewBox="0 0 220 220" width="195" height="195">
                             <defs>
-                                <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                                    <feGaussianBlur stdDeviation="5" result="blur" />
-                                    <feMerge>
-                                        <feMergeNode in="blur" />
-                                        <feMergeNode in="SourceGraphic" />
-                                    </feMerge>
+                                <filter id="core-glow" x="-30%" y="-30%" width="160%" height="160%">
+                                    <feGaussianBlur stdDeviation="6" result="blur"/>
+                                    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
                                 </filter>
+                                <radialGradient id="coreGrad" cx="50%" cy="50%" r="50%">
+                                    <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95"/>
+                                    <stop offset="35%" stop-color="#00f0ff" stop-opacity="0.85"/>
+                                    <stop offset="70%" stop-color="#0066cc" stop-opacity="0.5"/>
+                                    <stop offset="100%" stop-color="#001133" stop-opacity="0.2"/>
+                                </radialGradient>
+                                <radialGradient id="outerGrad" cx="50%" cy="50%" r="50%">
+                                    <stop offset="0%" stop-color="rgba(0,240,255,0.06)"/>
+                                    <stop offset="100%" stop-color="transparent"/>
+                                </radialGradient>
                             </defs>
-                            
-                            <!-- Outer technical ring ticks -->
-                            <circle cx="100" cy="100" r="90" stroke="rgba(0, 240, 255, 0.2)" stroke-width="2" fill="none" stroke-dasharray="4,8" />
-                            
-                            <!-- Inner segmented ring -->
-                            <circle class="reactor-ring-segments" cx="100" cy="100" r="75" stroke="rgba(0, 240, 255, 0.4)" stroke-width="6" fill="none" stroke-dasharray="24, 6" />
-                            
-                            <!-- Middle glow circles -->
-                            <circle cx="100" cy="100" r="60" stroke="rgba(0, 240, 255, 0.3)" stroke-width="1" fill="none" />
-                            <circle cx="100" cy="100" r="50" stroke="rgba(0, 240, 255, 0.6)" stroke-width="3" fill="none" stroke-dasharray="15, 5" />
-                            
-                            <!-- The core nodes (triangles/shapes or spokes) -->
-                            <g class="reactor-spokes">
-                                <line x1="100" y1="40" x2="100" y2="60" stroke="#00f0ff" stroke-width="3" filter="url(#glow)" />
-                                <line x1="100" y1="140" x2="100" y2="160" stroke="#00f0ff" stroke-width="3" filter="url(#glow)" />
-                                <line x1="40" y1="100" x2="60" y2="100" stroke="#00f0ff" stroke-width="3" filter="url(#glow)" />
-                                <line x1="140" y1="100" x2="160" y2="100" stroke="#00f0ff" stroke-width="3" filter="url(#glow)" />
-                                <line x1="58" y1="58" x2="72" y2="72" stroke="#00f0ff" stroke-width="3" filter="url(#glow)" />
-                                <line x1="128" y1="128" x2="142" y2="142" stroke="#00f0ff" stroke-width="3" filter="url(#glow)" />
-                                <line x1="142" y1="58" x2="128" y2="72" stroke="#00f0ff" stroke-width="3" filter="url(#glow)" />
-                                <line x1="72" y1="128" x2="58" y2="142" stroke="#00f0ff" stroke-width="3" filter="url(#glow)" />
+                            <!-- Outer fill -->
+                            <circle cx="110" cy="110" r="105" fill="url(#outerGrad)"/>
+                            <!-- Outer tick ring -->
+                            <circle cx="110" cy="110" r="100" stroke="rgba(0,240,255,0.12)" stroke-width="1" fill="none" stroke-dasharray="2,8"/>
+                            <!-- Segmented rings -->
+                            <circle class="svg-ring-a" cx="110" cy="110" r="85" stroke="rgba(0,240,255,0.45)" stroke-width="5" fill="none" stroke-dasharray="26,8"/>
+                            <circle cx="110" cy="110" r="70" stroke="rgba(0,240,255,0.18)" stroke-width="1" fill="none"/>
+                            <circle class="svg-ring-b" cx="110" cy="110" r="56" stroke="rgba(0,240,255,0.6)" stroke-width="3" fill="none" stroke-dasharray="16,7"/>
+                            <!-- Spokes -->
+                            <g class="svg-spokes" filter="url(#core-glow)">
+                                <line x1="110" y1="42" x2="110" y2="65"  stroke="#00f0ff" stroke-width="3"/>
+                                <line x1="110" y1="155" x2="110" y2="178" stroke="#00f0ff" stroke-width="3"/>
+                                <line x1="42"  y1="110" x2="65"  y2="110" stroke="#00f0ff" stroke-width="3"/>
+                                <line x1="155" y1="110" x2="178" y2="110" stroke="#00f0ff" stroke-width="3"/>
+                                <line x1="61"  y1="61"  x2="77"  y2="77"  stroke="#00f0ff" stroke-width="2.5"/>
+                                <line x1="143" y1="143" x2="159" y2="159" stroke="#00f0ff" stroke-width="2.5"/>
+                                <line x1="159" y1="61"  x2="143" y2="77"  stroke="#00f0ff" stroke-width="2.5"/>
+                                <line x1="77"  y1="143" x2="61"  y2="159" stroke="#00f0ff" stroke-width="2.5"/>
                             </g>
-                            
-                            <!-- Center main pulsing power core -->
-                            <circle class="reactor-power-core" cx="100" cy="100" r="30" fill="#00f0ff" filter="url(#glow)" />
-                            <circle cx="100" cy="100" r="20" fill="#ffffff" />
+                            <!-- Power core -->
+                            <circle class="svg-power-core" cx="110" cy="110" r="34" fill="url(#coreGrad)" filter="url(#core-glow)"/>
+                            <circle cx="110" cy="110" r="20" fill="#ffffff" opacity="0.97"/>
+                            <circle cx="110" cy="110" r="11" fill="#00f0ff" opacity="0.7"/>
+                            <circle cx="110" cy="110" r="5" fill="#ffffff" opacity="1"/>
                         </svg>
                     </button>
                 </div>
-                
+
+                <!-- Voice hint -->
+                <p class="voice-hint" id="voice-hint-text">CLICK ARC REACTOR OR PRESS SPACE</p>
+
+                <!-- Reactor controls -->
                 <div class="reactor-controls">
-                    <p class="voice-hint" id="voice-hint-text">CLICK THE ARC REACTOR TO INITIATE VOICE COMMAND</p>
-                    <div class="buttons-row">
-                        <button id="mute-voice-btn" class="hud-btn outline-btn" aria-pressed="false">MUTE VOICE FEED</button>
-                        <button id="clear-console-btn" class="hud-btn outline-btn">CLEAR LOGS</button>
+                    <button id="mute-voice-btn" class="hud-btn outline-btn" aria-pressed="false">
+                        <span class="btn-icon">🔊</span> MUTE
+                    </button>
+                    <button id="clear-memory-btn" class="hud-btn outline-btn" title="Wipe AI conversation memory">
+                        <span class="btn-icon">🧠</span> WIPE MEM
+                    </button>
+                    <button id="clear-console-btn" class="hud-btn outline-btn">
+                        <span class="btn-icon">🗑</span> CLEAR
+                    </button>
+                </div>
+
+                <!-- System metrics strip -->
+                <div class="metrics-strip">
+                    <div class="metric-item">
+                        <div class="metric-label">MIC</div>
+                        <div class="metric-value" id="mic-status-text">OFFLINE</div>
+                    </div>
+                    <div class="metric-sep"></div>
+                    <div class="metric-item">
+                        <div class="metric-label">LANG</div>
+                        <div class="metric-value">EN-US</div>
+                    </div>
+                    <div class="metric-sep"></div>
+                    <div class="metric-item">
+                        <div class="metric-label">AI MODEL</div>
+                        <div class="metric-value">QWEN3</div>
+                    </div>
+                    <div class="metric-sep"></div>
+                    <div class="metric-item">
+                        <div class="metric-label">MEMORY</div>
+                        <div class="metric-value" id="mem-turn-count">0 TURNS</div>
+                    </div>
+                    <div class="metric-sep"></div>
+                    <div class="metric-item">
+                        <div class="metric-label">CORE</div>
+                        <div class="metric-value" id="reactor-core-efficiency">OPTIMAL</div>
                     </div>
                 </div>
+
             </section>
 
-            <!-- Right Column: Interactive Widgets -->
-            <div class="hud-widgets-column">
-                
-                <!-- Music Library Widget -->
+            <!-- ══ RIGHT COLUMN ══ -->
+            <aside class="right-column">
+
+                <!-- Music Library -->
                 <section class="hud-panel music-panel" aria-labelledby="music-heading">
                     <div class="panel-header">
-                        <h2 id="music-heading" class="panel-title"><span class="icon">♫</span> MUSIC_LIBRARY.PY</h2>
-                        <div class="panel-status">DB_SYNCED</div>
+                        <h2 id="music-heading" class="panel-title"><span class="panel-icon">♫</span> MUSIC LIBRARY</h2>
+                        <div class="panel-badges">
+                            <span class="badge badge-blue" id="music-count-badge">--</span>
+                        </div>
                     </div>
-                    <div class="panel-content">
-                        <p class="widget-desc">Click any track below to command Jarvis to play it:</p>
+                    <div class="panel-body">
+                        <!-- Search filter -->
+                        <div class="music-search-wrap">
+                            <input type="text" id="music-search" class="music-search-input" placeholder="🔍 Search tracks..." spellcheck="false">
+                        </div>
                         <div class="music-grid" id="music-library-container">
-                            <!-- Populated dynamically by script.js -->
-                            <div class="loading-placeholder">Syncing library files...</div>
+                            <div class="loading-placeholder">Syncing library...</div>
                         </div>
                     </div>
                 </section>
 
-                <!-- Live News Headlines Widget -->
+                <!-- Live Intel Feed -->
                 <section class="hud-panel news-panel" aria-labelledby="news-heading">
                     <div class="panel-header">
-                        <h2 id="news-heading" class="panel-title"><span class="icon">▤</span> LIVE HEADLINES feed</h2>
-                        <div class="panel-status" id="news-status">STABLE</div>
+                        <h2 id="news-heading" class="panel-title"><span class="panel-icon">▤</span> LIVE INTEL FEED</h2>
+                        <div class="panel-badges">
+                            <span class="badge badge-pulse" id="news-status">STANDBY</span>
+                        </div>
                     </div>
-                    <div class="panel-content">
+                    <div class="panel-body">
                         <div class="news-list" id="news-feed-container">
-                            <!-- Populated dynamically by script.js -->
-                            <div class="loading-placeholder">Standing by for news queries...</div>
+                            <div class="loading-placeholder">Awaiting news query...</div>
                         </div>
                     </div>
                 </section>
-                
-            </div>
-            
-        </main>
-        
-        <!-- Footer / Status Bar -->
-        <footer class="hud-footer">
-            <div class="footer-item"><span class="label">LOC:</span> 127.0.0.1:5000</div>
-            <div class="footer-item"><span class="label">MIC_FEED:</span> <span id="mic-status-text">DISCONNECTED</span></div>
-            <div class="footer-item"><span class="label">SPEECH_LANG:</span> EN-US (DEFAULT)</div>
-            <div class="footer-item"><span class="label">REACTOR_CORE:</span> <span id="reactor-core-efficiency">100% / OPTIMAL</span></div>
-        </footer>
-    </div>
 
-    <!-- Web HUD scripts -->
+            </aside>
+
+        </main>
+
+        <!-- ── FOOTER STATUS BAR ── -->
+        <footer class="hud-footer">
+            <div class="footer-seg"><span class="f-label">HOST</span> 127.0.0.1:5000</div>
+            <div class="footer-seg"><span class="f-label">STATUS</span> <span class="f-green" id="footer-status">OPERATIONAL</span></div>
+            <div class="footer-seg"><span class="f-label">BUILD</span> MARK-IX.1</div>
+            <div class="footer-seg"><span class="f-label">COMMANDS</span> <span id="cmd-count">0</span> PROCESSED</div>
+            <div class="footer-seg"><span class="f-label">PROTOCOL</span> HTTP/FLASK</div>
+            <div class="footer-seg"><span class="f-label">STARK INDUSTRIES</span> <span class="f-dim">© 2025</span></div>
+        </footer>
+
+    </div><!-- /.hud-container -->
+
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
 </html>

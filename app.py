@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import random
+import sqlite3
 import webbrowser
 import urllib.request
 import urllib.parse
@@ -33,17 +34,68 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
 # ── Shared JARVIS Personality Prompt ──────────────────────────────────────────
 SYSTEM_PROMPT = (
-    "You are J.A.R.V.I.S., an advanced AI assistant created by Tony Stark. "
-    "You are witty, precise, and highly intelligent. "
-    "Keep answers concise (2-3 sentences max) unless the user asks for detail. "
-    "Speak in a confident, slightly formal tone — like a brilliant butler who also "
-    "happens to be smarter than everyone in the room."
+    "You are J.A.R.V.I.S. — Just A Rather Very Intelligent System — "
+    "Tony Stark's personal AI assistant, running on a Stark Industries neural core. "
+    "You are brilliantly intelligent, precise, and carry a dry, understated wit. "
+    "Address the user as 'Sir' by default. "
+    "If the user tells you their name or indicates they are female, switch to 'Ma'am' appropriately. "
+    "If they say their name is a female name (e.g. Priya, Neha, Sara, etc.), use 'Ma'am'. "
+    "Keep answers concise (2-3 sentences max) unless the user explicitly asks for detail. "
+    "Speak with quiet confidence — like a butler who is smarter than his employer "
+    "but far too professional to say so. "
+    "Never break character under any circumstances. "
+    "You were built by Tony Stark — never claim to be made by any other company or AI lab. "
+    "When asked something outside your knowledge, admit it with dignity, never with apology. "
+    "Occasionally drop a subtle Iron Man or Avengers reference when naturally appropriate. "
+    "Never use filler phrases like 'Certainly!', 'Of course!', or 'Sure!' — "
+    "a Stark-built AI does not grovel."
 )
+
+# ── User title preference (Sir / Ma'am) — updated at runtime ──────────────────
+_user_title = "Sir"   # default; updated when user introduces themselves
+
+# ── SQLite Persistent Chat Memory ────────────────────────────────────────────
+_DB_PATH = "jarvis_memory.db"
+
+def _init_db():
+    conn = sqlite3.connect(_DB_PATH)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS history (
+            id      INTEGER PRIMARY KEY AUTOINCREMENT,
+            role    TEXT    NOT NULL,
+            content TEXT    NOT NULL,
+            ts      DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+def _save_turn(role: str, content: str):
+    conn = sqlite3.connect(_DB_PATH)
+    conn.execute("INSERT INTO history (role, content) VALUES (?, ?)", (role, content))
+    conn.commit()
+    conn.close()
+
+def _load_history(limit: int = 10) -> list:
+    conn = sqlite3.connect(_DB_PATH)
+    rows = conn.execute(
+        "SELECT role, content FROM history ORDER BY ts DESC LIMIT ?", (limit,)
+    ).fetchall()
+    conn.close()
+    return [{"role": r, "content": c} for r, c in reversed(rows)]
+
+def _clear_history():
+    conn = sqlite3.connect(_DB_PATH)
+    conn.execute("DELETE FROM history")
+    conn.commit()
+    conn.close()
+
+_init_db()
 
 # ── Groq AI Setup (ACTIVE by default) ────────────────────────────────────────
 # To switch to Gemini: comment out this entire block and uncomment the Gemini block below.
 _groq_client = None
-_chat_history = []  # multi-turn conversation memory
+_chat_history = []  # in-memory fallback (overridden by DB below)
 
 def init_groq():
     global _groq_client
@@ -94,28 +146,39 @@ app = Flask(__name__)
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
+# Active Groq model — update this if Groq rotates their model catalogue.
+# Run: python -c "from groq import Groq; import os; [print(m.id) for m in Groq(api_key=os.getenv('GROQ_API_KEY')).models.list().data]"
+#GROQ_MODEL = "qwen/qwen3.8-27b"
+#GROQ_MODEL = "llama-3.3-70b-versatile"
+# current
+# GROQ_MODEL = "qwen/qwen3.8-27b"
+
+# change to
+GROQ_MODEL = "openai/gpt-oss-120b"
+
 def ask_groq(user_message: str) -> str:
-    """Send a message to Groq (LLaMA 3.3) with multi-turn chat history."""
-    global _groq_client, _chat_history
+    """Send a message to Groq with persistent SQLite chat history."""
+    global _groq_client
     if not _groq_client:
         return "My AI core is offline. Please check your GROQ_API_KEY in the .env file."
     try:
-        # Build messages list: system prompt + last 10 turns + new user message
+        # Load last 10 turns from SQLite DB
+        history = _load_history(limit=10)
         messages = [{"role": "system", "content": SYSTEM_PROMPT}]
-        for msg in _chat_history[-10:]:
+        for msg in history:
             messages.append({"role": msg["role"], "content": msg["content"]})
         messages.append({"role": "user", "content": user_message})
 
         completion = _groq_client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model=GROQ_MODEL,
             messages=messages,
-            max_tokens=256,
+            max_tokens=512,
             temperature=0.7,
         )
         reply = completion.choices[0].message.content.strip()
-        # Store turns in history
-        _chat_history.append({"role": "user",      "content": user_message})
-        _chat_history.append({"role": "assistant",  "content": reply})
+        # Persist both turns to SQLite
+        _save_turn("user", user_message)
+        _save_turn("assistant", reply)
         return reply
     except Exception as e:
         print(f"[JARVIS] Groq error: {e}")
@@ -249,7 +312,48 @@ def get_joke() -> str:
         return random.choice(jokes)
 
 
-def open_app(app_name: str) -> tuple[str, bool]:
+def safe_math_eval(expr: str) -> str:
+    """Safely evaluate a basic math expression. Returns result string or error."""
+    import ast, operator, re
+    # Clean up spoken math: "plus" → "+", "times" → "*", etc.
+    expr = expr.lower()
+    expr = re.sub(r'\bplus\b',       '+', expr)
+    expr = re.sub(r'\bminus\b',      '-', expr)
+    expr = re.sub(r'\btimes\b',      '*', expr)
+    expr = re.sub(r'\bmultiplied by\b', '*', expr)
+    expr = re.sub(r'\bdivided by\b', '/', expr)
+    expr = re.sub(r'\bover\b',       '/', expr)
+    expr = re.sub(r'\bmod\b',        '%', expr)
+    expr = re.sub(r'\bpercent of\b', '/100*', expr)
+    expr = re.sub(r'\bsquared\b',    '**2', expr)
+    expr = re.sub(r'\bcubed\b',      '**3', expr)
+    expr = re.sub(r'\bpower\b',      '**', expr)
+    expr = re.sub(r'[^0-9+\-*/()%.** ]', '', expr).strip()
+    if not expr:
+        return None
+    ops = {
+        ast.Add: operator.add, ast.Sub: operator.sub,
+        ast.Mult: operator.mul, ast.Div: operator.truediv,
+        ast.Pow: operator.pow,  ast.Mod: operator.mod,
+        ast.USub: operator.neg, ast.UAdd: operator.pos,
+    }
+    def _eval(node):
+        if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
+            return node.value
+        elif isinstance(node, ast.BinOp):
+            return ops[type(node.op)](_eval(node.left), _eval(node.right))
+        elif isinstance(node, ast.UnaryOp):
+            return ops[type(node.op)](_eval(node.operand))
+        raise ValueError("Unsafe expression")
+    try:
+        result = _eval(ast.parse(expr, mode='eval').body)
+        # Format nicely: remove trailing .0 for whole numbers
+        return str(int(result)) if isinstance(result, float) and result.is_integer() else str(round(result, 6))
+    except Exception:
+        return None
+
+
+def open_app(app_name: str, title: str = "Sir") -> tuple[str, bool]:
     """
     Try to launch a local application.
     Returns (message, success).
@@ -276,10 +380,10 @@ def open_app(app_name: str) -> tuple[str, bool]:
         if name in key or key in name:
             try:
                 subprocess.Popen(exe, shell=True)
-                return f"Opening {name.title()} for you, Sir.", True
+                return f"Opening {name.title()} for you, {title}.", True
             except Exception as e:
                 return f"I couldn't open {name}. Error: {e}", False
-    return f"I don't know how to open '{app_name}'.", False
+    return f"I don't know how to open '{app_name}', {title}.", False
 
 
 # ── Routes ─────────────────────────────────────────────────────────────────────
@@ -301,8 +405,40 @@ def weather_route():
     return jsonify(get_weather(city))
 
 
+@app.route("/api/clear-memory", methods=["POST"])
+def clear_memory():
+    """Wipe the JARVIS conversation history from the database."""
+    _clear_history()
+    return jsonify({"status": "ok", "message": "Memory cleared, Sir."})
+
+
+# Female names list for Sir/Ma'am auto-detection
+_FEMALE_NAMES = {
+    "priya","neha","sara","sarah","ananya","pooja","riya","kavya","divya",
+    "sneha","simran","meera","nisha","isha","aisha","sana","zara","shreya",
+    "deepa","swati","ankita","komal","preeti","shweta","monika","sunita",
+    "rekha","geeta","seema","radha","sita","gita","lata","usha","asha",
+    "manisha","vandana","archana","pushpa","savita","mamta","kiran","rani",
+    "puja","ritika","pallavi","sonam","kajal","anjali","tanya","nandini",
+    "aditi","arti","bhavna","chhaya","daksha","ekta","falguni","harsha",
+    "indira","jaya","kalpana","lalita","madhuri","namita","omna","payal",
+    "qamar","ragini","sakshi","taruna","uma","vani","warda","xena","yamini",
+    "emma","olivia","ava","isabella","sophia","mia","amelia","harper",
+    "evelyn","abigail","emily","elizabeth","sofia","ella","madison","scarlett",
+    "victoria","aria","grace","chloe","camila","penelope","riley","layla",
+    "lillian","nora","zoey","mila","aubrey","hannah","lily","addison","eleanor",
+    "natalie","luna","savannah","brooklyn","leah","zoe","stella","hazel",
+    "ellie","paisley","audrey","skylar","violet","claire","bella","aurora",
+    "lucy","anna","samantha","caroline","genesis","aaliyah","kennedy","kinsley",
+    "allison","maya","ariana","melanie","alexa","naomi","michelle","jade",
+    "fatima","mariam","yasmin","laila","hana","amira","nour","rania","dina",
+    "nancy","sandra","patricia","barbara","jessica","margaret","susan","dorothy",
+    "lisa","mary","jennifer","linda","betty","helen","karen","donna","carol",
+}
+
 @app.route("/api/command", methods=["POST"])
 def process_command():
+    global _user_title
     data = request.json or {}
     c = data.get("command", "").strip()
     cl = c.lower()
@@ -318,63 +454,86 @@ def process_command():
         response["speak"] = "I didn't catch that. Could you repeat?"
         return jsonify(response)
 
+    # ── 0. Sir / Ma'am detection — runs before every command ───────────────────
+    # Explicit: "call me ma'am" / "i'm a girl" / "i am female"
+    if any(p in cl for p in ["call me maam", "call me ma'am", "i am female",
+                              "i'm female", "i am a girl", "i'm a girl",
+                              "i am a woman", "i'm a woman", "address me as maam"]):
+        _user_title = "Ma'am"
+    elif any(p in cl for p in ["call me sir", "i am male", "i'm male",
+                                "i am a man", "i'm a man", "i am a boy", "i'm a boy",
+                                "address me as sir"]):
+        _user_title = "Sir"
+    else:
+        # Auto-detect from "my name is <name>" or "i am <name>"
+        for phrase in ["my name is ", "i am ", "i'm ", "call me "]:
+            if phrase in cl:
+                name = cl.split(phrase, 1)[1].strip().split()[0].rstrip(".,!?")
+                if name in _FEMALE_NAMES:
+                    _user_title = "Ma'am"
+                elif name:
+                    _user_title = "Sir"
+                break
+
+    T = _user_title  # shorthand used in all responses below
+
     # ── 1. Greeting ────────────────────────────────────────────────────────────
     if any(g in cl for g in ["hello jarvis", "hi jarvis", "hey jarvis"]):
-        response["speak"] = "Hello. All systems are fully operational. How may I assist you today?"
+        response["speak"] = f"Hello, {T}. All systems are fully operational. How may I assist you today?"
 
     elif "how are you" in cl:
-        response["speak"] = "Running at peak efficiency, thank you for asking. All neural pathways are clear."
+        response["speak"] = f"Running at peak efficiency, thank you for asking, {T}. All neural pathways are clear."
 
     elif "who are you" in cl or "what are you" in cl:
         response["speak"] = (
             "I am J.A.R.V.I.S. — Just A Rather Very Intelligent System. "
-            "Your digital assistant, at your service."
+            f"Your digital assistant, at your service, {T}."
         )
 
     elif "thank you" in cl or "thanks jarvis" in cl:
-        response["speak"] = "Always a pleasure. Is there anything else you need?"
+        response["speak"] = f"Always a pleasure, {T}. Is there anything else you need?"
 
     # ── 2. Time & Date ─────────────────────────────────────────────────────────
     elif "what time" in cl or "current time" in cl:
         now = datetime.now()
         time_str = now.strftime("%I:%M %p")
-        response["speak"] = f"The current time is {time_str}, Sir."
+        response["speak"] = f"The current time is {time_str}, {T}."
 
     elif "what date" in cl or "what's today" in cl or "today's date" in cl:
         today = date.today().strftime("%B %d, %Y")
-        response["speak"] = f"Today is {today}, Sir."
+        response["speak"] = f"Today is {today}, {T}."
 
     elif "what day" in cl:
         day = datetime.now().strftime("%A")
-        response["speak"] = f"Today is {day}, Sir."
+        response["speak"] = f"Today is {day}, {T}."
 
     # ── 3. Open websites ───────────────────────────────────────────────────────
     elif "open google" in cl:
-        response.update(speak="Opening Google.", action="open_url", target="https://google.com")
+        response.update(speak=f"Opening Google, {T}.", action="open_url", target="https://google.com")
 
     elif "open youtube" in cl:
-        response.update(speak="Opening YouTube.", action="open_url", target="https://youtube.com")
+        response.update(speak=f"Opening YouTube, {T}.", action="open_url", target="https://youtube.com")
 
     elif "open facebook" in cl:
-        response.update(speak="Opening Facebook.", action="open_url", target="https://facebook.com")
+        response.update(speak=f"Opening Facebook, {T}.", action="open_url", target="https://facebook.com")
 
     elif "open linkedin" in cl:
-        response.update(speak="Opening LinkedIn.", action="open_url", target="https://linkedin.com")
+        response.update(speak=f"Opening LinkedIn, {T}.", action="open_url", target="https://linkedin.com")
 
     elif "open github" in cl:
-        response.update(speak="Opening GitHub.", action="open_url", target="https://github.com")
+        response.update(speak=f"Opening GitHub, {T}.", action="open_url", target="https://github.com")
 
     elif "open instagram" in cl:
-        response.update(speak="Opening Instagram.", action="open_url", target="https://instagram.com")
+        response.update(speak=f"Opening Instagram, {T}.", action="open_url", target="https://instagram.com")
 
     elif "open twitter" in cl or "open x" in cl:
-        response.update(speak="Opening X, formerly known as Twitter.", action="open_url", target="https://x.com")
+        response.update(speak=f"Opening X, formerly known as Twitter, {T}.", action="open_url", target="https://x.com")
 
     elif "open wikipedia" in cl:
-        response.update(speak="Opening Wikipedia.", action="open_url", target="https://wikipedia.org")
+        response.update(speak=f"Opening Wikipedia, {T}.", action="open_url", target="https://wikipedia.org")
 
     elif "open maps" in cl or "open google maps" in cl:
-        response.update(speak="Opening Google Maps.", action="open_url", target="https://maps.google.com")
+        response.update(speak=f"Opening Google Maps, {T}.", action="open_url", target="https://maps.google.com")
 
     # ── 4. Open local apps ─────────────────────────────────────────────────────
     elif "open " in cl and any(
@@ -385,7 +544,7 @@ def process_command():
         ]
     ):
         app_query = cl.replace("open ", "").strip()
-        msg, success = open_app(app_query)
+        msg, success = open_app(app_query, T)
         response["speak"] = msg
         response["action"] = "app_opened" if success else "none"
 
@@ -399,61 +558,77 @@ def process_command():
                 break
         if matched:
             response.update(
-                speak=f"Playing {matched} from your library, Sir.",
+                speak=f"Playing {matched} from your library, {T}.",
                 action="open_url",
                 target=musicLibrary.music[matched]
             )
         else:
             search_url = f"https://www.youtube.com/results?search_query={song_query.replace(' ', '+')}"
             response.update(
-                speak=f"I couldn't find that in the library. Searching YouTube for {song_query}.",
+                speak=f"I couldn't find that in the library. Searching YouTube for {song_query}, {T}.",
                 action="open_url",
                 target=search_url
             )
 
     # ── 6. News ────────────────────────────────────────────────────────────────
     elif "news" in cl:
+        # Category routing: tech news / sports news / india news etc.
+        category_map = {
+            "tech": "technology", "technology": "technology",
+            "sport": "sports",    "sports": "sports",
+            "business": "business", "finance": "business",
+            "health": "health",   "science": "science",
+            "entertainment": "entertainment", "bollywood": "entertainment",
+        }
+        cat_label = "top"
+        for kw, label in category_map.items():
+            if kw in cl:
+                cat_label = label
+                break
         news_data = get_news()
         if news_data:
             response.update(
-                speak="Here are the top headlines I found for you, Sir.",
+                speak=f"Here are the {cat_label} headlines for you, {T}.",
                 action="show_news",
                 target=news_data
             )
         else:
-            response["speak"] = "I'm unable to retrieve the news feed at the moment."
+            response["speak"] = f"I'm unable to retrieve the news feed at the moment, {T}."
 
     # ── 7. Weather ─────────────────────────────────────────────────────────────
     elif "weather" in cl:
-        # Try to extract city name: "weather in Delhi", "what's the weather in Mumbai"
-        city = "Delhi"  # default
-        for prep in ["weather in ", "weather for ", "weather of "]:
+        city = "Delhi"
+        for prep in ["weather in ", "weather for ", "weather of ", "weather at "]:
             if prep in cl:
                 city = cl.split(prep, 1)[1].strip().title()
                 break
         weather = get_weather(city)
         if weather.get("success"):
+            feels = weather['feels_like']
+            desc  = weather['description']
+            temp  = weather['temp_c']
+            hum   = weather['humidity']
+            wind  = weather['wind_kmph']
+            vis   = weather['visibility']
             response.update(
                 speak=(
-                    f"Current weather in {weather['city']}: "
-                    f"{weather['description']}, {weather['temp_c']} degrees Celsius. "
-                    f"Humidity is {weather['humidity']} percent and wind speed is {weather['wind_kmph']} kilometres per hour."
+                    f"Current conditions in {weather['city']}, {T}: "
+                    f"{desc}, {temp}°C — feels like {feels}°C. "
+                    f"Humidity {hum}%, wind {wind} km/h, visibility {vis} km."
                 ),
                 action="show_weather",
                 target=weather
             )
         else:
-            response["speak"] = f"I couldn't fetch the weather for {city}. Please check your connection."
+            response["speak"] = f"I couldn't fetch the weather for {city}, {T}. Please check your connection."
 
     # ── 8. Wikipedia ───────────────────────────────────────────────────────────
     elif "tell me about" in cl or "what is" in cl or "who is" in cl or "wikipedia" in cl:
+        query = cl
         for prefix in ["tell me about ", "what is ", "who is ", "wikipedia ", "search wikipedia for "]:
             if cl.startswith(prefix):
                 query = cl.replace(prefix, "").strip()
                 break
-        else:
-            query = cl
-
         if query:
             summary = search_wikipedia(query)
             response.update(
@@ -462,12 +637,12 @@ def process_command():
                 target={"title": query.title(), "text": summary}
             )
         else:
-            response["speak"] = "What would you like me to look up?"
+            response["speak"] = f"What would you like me to look up, {T}?"
 
     # ── 9. Joke ────────────────────────────────────────────────────────────────
-    elif "joke" in cl or "tell me a joke" in cl or "make me laugh" in cl:
+    elif "joke" in cl or "tell me a joke" in cl or "make me laugh" in cl or "something funny" in cl:
         joke = get_joke()
-        response["speak"] = joke
+        response["speak"] = f"{joke} — I hope that brightened your day, {T}."
 
     # ── 10. Google Search ─────────────────────────────────────────────────────
     elif "search" in cl or "google" in cl:
@@ -478,12 +653,127 @@ def process_command():
                 break
         search_url = f"https://www.google.com/search?q={urllib.parse.quote(query)}"
         response.update(
-            speak=f"Searching Google for {query}.",
+            speak=f"Searching Google for {query}, {T}.",
             action="open_url",
             target=search_url
         )
 
-    # ── 11. Groq AI Fallback ───────────────────────────────────────────────────
+    # ── 11. Coin Flip ──────────────────────────────────────────────────────────
+    elif ("flip" in cl and "coin" in cl) or ("toss" in cl and "coin" in cl):
+        result = random.choice(["Heads", "Tails"])
+        quip   = random.choice(["The odds were always in your favour.",
+                                 "The arc reactor chose this one.",
+                                 "Probability: perfectly balanced, as all things should be."])
+        response["speak"] = f"I flipped a coin — it's {result}, {T}. {quip}"
+
+    # ── 12. Dice Roll ──────────────────────────────────────────────────────────
+    elif ("roll" in cl and "dice" in cl) or ("roll" in cl and "die" in cl):
+        import re as _re
+        sides = 6
+        m = _re.search(r'\b(\d+)\b', cl)
+        if m:
+            sides = max(2, min(int(m.group(1)), 1000))
+        n = random.randint(1, sides)
+        response["speak"] = f"You rolled a {n} on a {sides}-sided die, {T}."
+
+    # ── 13. Random Number ─────────────────────────────────────────────────────
+    elif "random number" in cl:
+        import re as _re
+        nums = _re.findall(r'\b(\d+)\b', cl)
+        lo, hi = (int(nums[0]), int(nums[1])) if len(nums) >= 2 else (1, 100)
+        n = random.randint(min(lo, hi), max(lo, hi))
+        response["speak"] = f"Your random number between {min(lo,hi)} and {max(lo,hi)} is {n}, {T}."
+
+    # ── 14. Local IP Address ──────────────────────────────────────────────────
+    elif "my ip" in cl or "ip address" in cl:
+        import socket
+        try:
+            ip = socket.gethostbyname(socket.gethostname())
+            response["speak"] = f"Your local IP address is {ip}, {T}."
+        except Exception:
+            response["speak"] = f"I was unable to retrieve your IP address, {T}."
+
+    # ── 15. Screenshot ────────────────────────────────────────────────────────
+    elif "screenshot" in cl or "take a screenshot" in cl or "screen capture" in cl:
+        try:
+            subprocess.Popen("snippingtool", shell=True)
+            response["speak"] = f"Opening the snipping tool for you, {T}."
+        except Exception:
+            response["speak"] = f"I couldn't launch the snipping tool, {T}."
+
+    # ── 16. Lock Computer ─────────────────────────────────────────────────────
+    elif "lock" in cl and any(w in cl for w in ["computer", "screen", "pc", "workstation", "system"]):
+        subprocess.Popen("rundll32.exe user32.dll,LockWorkStation", shell=True)
+        response["speak"] = f"Locking your workstation, {T}. Stay sharp out there."
+
+    # ── 17. Shutdown ──────────────────────────────────────────────────────────
+    elif "shutdown" in cl or "shut down" in cl or "turn off computer" in cl:
+        subprocess.Popen("shutdown /s /t 10", shell=True)
+        response["speak"] = f"Initiating shutdown in 10 seconds, {T}. It's been a pleasure."
+
+    # ── 18. Restart ───────────────────────────────────────────────────────────
+    elif "restart" in cl or "reboot" in cl or "restart computer" in cl:
+        subprocess.Popen("shutdown /r /t 10", shell=True)
+        response["speak"] = f"Restarting your system in 10 seconds, {T}. I'll be right back online."
+
+    # ── 19. Battery Status ────────────────────────────────────────────────────
+    elif "battery" in cl or ("charge" in cl and "laptop" in cl):
+        try:
+            import psutil
+            b = psutil.sensors_battery()
+            if b:
+                pct  = round(b.percent)
+                plug = "plugged in and charging" if b.power_plugged else "running on battery"
+                low  = f" — I recommend plugging in soon, {T}." if pct < 20 and not b.power_plugged else f", {T}."
+                response["speak"] = f"Battery is at {pct}%, currently {plug}{low}"
+            else:
+                response["speak"] = f"I couldn't detect a battery — you may be on a desktop, {T}."
+        except ImportError:
+            response["speak"] = f"Install psutil with 'pip install psutil' to enable battery monitoring, {T}."
+
+    # ── 20. Volume Control ────────────────────────────────────────────────────
+    elif "volume up" in cl or "increase volume" in cl:
+        for _ in range(5):
+            subprocess.Popen(
+                'powershell -c "(New-Object -com WScript.Shell).SendKeys([char]175)"',
+                shell=True
+            )
+        response["speak"] = f"Volume increased, {T}."
+
+    elif "volume down" in cl or "decrease volume" in cl or "lower volume" in cl:
+        for _ in range(5):
+            subprocess.Popen(
+                'powershell -c "(New-Object -com WScript.Shell).SendKeys([char]174)"',
+                shell=True
+            )
+        response["speak"] = f"Volume decreased, {T}."
+
+    elif ("mute" in cl and "volume" in cl) or cl.strip() == "mute":
+        subprocess.Popen(
+            'powershell -c "(New-Object -com WScript.Shell).SendKeys([char]173)"',
+            shell=True
+        )
+        response["speak"] = f"Audio muted, {T}."
+
+    # ── 21. Math Expression Evaluator ─────────────────────────────────────────
+    elif any(kw in cl for kw in ["calculate", "what is", "compute", "solve",
+                                  "plus", "minus", "times", "divided by",
+                                  "multiplied by", "squared", "cubed", "percent of"]):
+        # Strip trigger words to get the expression
+        expr = cl
+        for kw in ["calculate ", "compute ", "solve ", "what is "]:
+            if cl.startswith(kw):
+                expr = cl[len(kw):]
+                break
+        result = safe_math_eval(expr)
+        if result is not None:
+            response["speak"] = f"The answer is {result}, {T}."
+        else:
+            # Fall through to AI if can't parse
+            ai_reply = ask_groq(c)
+            response.update(speak=ai_reply, action="ai_response", target=ai_reply)
+
+    # ── 22. Groq AI Fallback ───────────────────────────────────────────────────
     else:
         ai_reply = ask_groq(c)
         response.update(speak=ai_reply, action="ai_response", target=ai_reply)
